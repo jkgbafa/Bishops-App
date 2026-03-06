@@ -637,6 +637,22 @@ function openModal(index) {
     return `<div class="detail-box"><div class="detail-box-label">${label}</div><div class="detail-box-value">${v}</div></div>`;
   }
 
+  // Denomination badge for UD Bishops
+  let denomBadgeHtml = '';
+  if (currentCat === 'ud_bishops' && p.denomination) {
+    const logo = p.denomLogo || '';
+    const initials2 = p.denomination.split(' ').map(w=>w[0]).join('').substring(0,2);
+    denomBadgeHtml = `
+      <div class="detail-box-label" style="margin-bottom:8px">DENOMINATION (tap to view members)</div>
+      <div class="council-badges">
+        <div class="council-badge" onclick="filterByDenomination('${p.denomination.replace(/'/g,"\\'")}')">
+          <div class="council-icon" style="background:#2196F3">${initials2}</div>
+          ${logo ? `<img src="${logo}" alt="${p.denomination}" referrerpolicy="no-referrer" onload="this.setAttribute('data-loaded','1');this.previousElementSibling.style.display='none'" onerror="this.remove()">` : ''}
+          <span>${p.denomination}</span>
+        </div>
+      </div>`;
+  }
+
   // Council badges for First Love
   let councilBadgesHtml = '';
   if (currentCat === 'first_love' && p._councilArr && p._councilArr.length) {
@@ -672,6 +688,7 @@ function openModal(index) {
           ${tagText ? `<div class="modal-tag">${tagText}</div>` : ''}
         </div>
       </div>
+      ${denomBadgeHtml}
       ${councilBadgesHtml}
       <div class="detail-grid">
         ${fm.details.map(([label, key]) => box(label, p[key])).join('')}
@@ -684,6 +701,13 @@ function openModal(index) {
 function filterByCouncil(councilName) {
   document.getElementById('modalOverlay').classList.remove('show');
   activeFilters['council'] = councilName;
+  applyFilters();
+  updateFilterButtons();
+}
+
+function filterByDenomination(denomName) {
+  document.getElementById('modalOverlay').classList.remove('show');
+  activeFilters['denomination'] = denomName;
   applyFilters();
   updateFilterButtons();
 }
