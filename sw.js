@@ -1,4 +1,4 @@
-const CACHE_NAME = 'church-dir-v1';
+const CACHE_NAME = 'church-dir-v2';
 
 // Core files to cache immediately
 const CORE_ASSETS = [
