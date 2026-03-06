@@ -1,0 +1,14 @@
+{
+  "name": "Church Directory",
+  "short_name": "Directory",
+  "description": "Church Directory - UD Bishops, First Love, UD Pastors, UDLWM, Flow Church",
+  "start_url": "/",
+  "display": "standalone",
+  "background_color": "#1a1a2e",
+  "theme_color": "#2196F3",
+  "orientation": "any",
+  "icons": [
+    { "src": "logos/dhmm.png", "sizes": "192x192", "type": "image/png" },
+    { "src": "logos/dhmm.png", "sizes": "512x512", "type": "image/png" }
+  ]
+}
