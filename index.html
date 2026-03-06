@@ -9,6 +9,10 @@
 <meta name="apple-mobile-web-app-status-bar-style" content="black-translucent">
 <meta name="theme-color" content="#2196F3">
 <link rel="manifest" href="manifest.json">
+<link rel="icon" type="image/x-icon" href="favicon.ico">
+<link rel="icon" type="image/png" sizes="32x32" href="favicon-32x32.png">
+<link rel="icon" type="image/png" sizes="16x16" href="favicon-16x16.png">
+<link rel="apple-touch-icon" sizes="180x180" href="apple-touch-icon.png">
 <style>
 * { margin: 0; padding: 0; box-sizing: border-box; }
 
@@ -365,7 +369,7 @@ const FIELD_MAPS = {
     tag: b => b.memberConvener || b.denomination || '',
   },
   first_love: {
-    expand: b => ({ name: b.n, age: b.a, country: b.cy, branch: b.br, maritalStatus: b.ms, profession: b.pr, gender: b.gn, functionRank: b.fr, council: (b.co||[]).join(', '), _councilArr: b.co||[], bishopStatus: b.bp, role: b.rl, photo: b.ph }),
+    expand: b => ({ name: b.n, age: b.a, country: b.cy, branch: b.br, maritalStatus: b.ms, profession: b.pr, gender: b.gn, functionRank: b.fr, council: (b.co||[]).join(', '), _councilArr: b.co||[], bishopStatus: Array.isArray(b.bp) ? b.bp[0] : b.bp, role: b.rl, photo: b.ph }),
     filters: ['council', 'country', 'bishopStatus'],
     filterLabels: { council: 'Council', country: 'Country', bishopStatus: 'Bishop Status' },
     arrayFilters: ['council'],
