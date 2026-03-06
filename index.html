@@ -1,0 +1,707 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>Church Directory</title>
+<meta name="referrer" content="no-referrer">
+<style>
+* { margin: 0; padding: 0; box-sizing: border-box; }
+
+:root {
+  --bg: #f5f5f5; --bg-card: #fff; --bg-filter: #fff; --bg-modal: #fff;
+  --bg-detail: #f8f9fa; --bg-close: #f0f0f0;
+  --text: #333; --text-secondary: #666; --text-muted: #999; --text-heading: #333; --text-value: #222;
+  --border: #e0e0e0; --border-light: #eee; --border-detail: #e9ecef;
+  --card-shadow: rgba(0,0,0,0.08); --card-hover-shadow: rgba(0,0,0,0.12);
+  --no-photo-bg: #e0e0e0; --no-photo-text: #999;
+  --dropdown-bg: #fff; --dropdown-hover: #f5f5f5; --dropdown-border: #f0f0f0;
+  --search-bg: #fff; --search-border: #ddd;
+  --tag-bg: #e3f2fd; --tag-text: #1565c0;
+  --overlay: rgba(0,0,0,0.5);
+  --accent: #2196F3;
+  --img-bg: #e8e8e8;
+}
+[data-theme="dark"] {
+  --bg: #1a1a2e; --bg-card: #16213e; --bg-filter: #16213e; --bg-modal: #1a1a2e;
+  --bg-detail: #0f3460; --bg-close: #0f3460;
+  --text: #e0e0e0; --text-secondary: #aaa; --text-muted: #888; --text-heading: #f0f0f0; --text-value: #fff;
+  --border: #2a2a4a; --border-light: #2a2a4a; --border-detail: #1a3a5c;
+  --card-shadow: rgba(0,0,0,0.3); --card-hover-shadow: rgba(0,0,0,0.5);
+  --no-photo-bg: #0f3460; --no-photo-text: #667;
+  --dropdown-bg: #16213e; --dropdown-hover: #0f3460; --dropdown-border: #2a2a4a;
+  --search-bg: #16213e; --search-border: #2a2a4a;
+  --tag-bg: #0f3460; --tag-text: #64b5f6;
+  --overlay: rgba(0,0,0,0.7);
+  --accent: #1976D2;
+  --img-bg: #0f3460;
+}
+
+body { font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, sans-serif; background: var(--bg); color: var(--text); transition: background 0.3s, color 0.3s; }
+
+.header {
+  background: var(--accent);
+  color: white;
+  padding: 16px 20px;
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  position: sticky;
+  top: 0;
+  z-index: 100;
+  box-shadow: 0 2px 4px rgba(0,0,0,0.1);
+}
+.header h1 { font-size: 22px; font-weight: 700; }
+.header .count { font-size: 16px; font-weight: 700; }
+.header-back {
+  border: none; background: none; color: white; cursor: pointer;
+  font-size: 15px; font-weight: 600; display: flex; align-items: center; gap: 6px;
+  padding: 6px 12px; border-radius: 8px; margin-right: 12px;
+}
+.header-back:hover { background: rgba(255,255,255,0.15); }
+.header-left { display: flex; align-items: center; }
+.header-right { display: flex; align-items: center; gap: 12px; }
+
+/* Dark mode toggle */
+.theme-toggle {
+  border: none; background: rgba(255,255,255,0.2); color: white; cursor: pointer;
+  width: 40px; height: 40px; border-radius: 50%; font-size: 20px;
+  display: flex; align-items: center; justify-content: center;
+  transition: background 0.2s;
+}
+.theme-toggle:hover { background: rgba(255,255,255,0.3); }
+
+/* Landing page */
+.landing { padding: 30px 20px; max-width: 800px; margin: 0 auto; }
+.landing h2 { font-size: 20px; font-weight: 700; margin-bottom: 20px; color: var(--text-heading); }
+.cat-grid { display: grid; gap: 14px; }
+.cat-card {
+  background: var(--bg-card);
+  border-radius: 12px;
+  padding: 24px;
+  cursor: pointer;
+  transition: transform 0.2s, box-shadow 0.2s;
+  box-shadow: 0 2px 6px var(--card-shadow);
+  display: flex;
+  align-items: center;
+  gap: 20px;
+}
+.cat-card:hover { transform: translateY(-2px); box-shadow: 0 6px 16px var(--card-hover-shadow); }
+.cat-icon {
+  width: 64px; height: 64px;
+  border-radius: 16px;
+  display: flex; align-items: center; justify-content: center;
+  font-size: 28px; font-weight: 800; color: white; flex-shrink: 0;
+  overflow: hidden;
+}
+.cat-icon img {
+  width: 100%; height: 100%; object-fit: contain; padding: 6px;
+  border-radius: 10px;
+}
+.cat-icon img.logo-dark {
+  background: white; border-radius: 10px;
+}
+.cat-info h3 { font-size: 20px; font-weight: 700; margin-bottom: 4px; color: var(--text-heading); }
+.cat-info p { font-size: 15px; color: var(--text-secondary); }
+.cat-count { font-size: 14px; color: var(--text-muted); margin-top: 4px; font-weight: 600; }
+
+.filters {
+  padding: 12px 20px;
+  background: var(--bg-filter);
+  border-bottom: 1px solid var(--border);
+  display: flex;
+  gap: 8px;
+  flex-wrap: wrap;
+  align-items: center;
+  position: sticky;
+  top: 56px;
+  z-index: 99;
+}
+.filter-row { display: flex; gap: 8px; flex-wrap: wrap; width: 100%; }
+.filter-btn {
+  padding: 7px 14px;
+  border: 1px solid var(--search-border);
+  border-radius: 20px;
+  background: var(--bg-card);
+  color: var(--text);
+  cursor: pointer;
+  font-size: 13px;
+  display: flex;
+  align-items: center;
+  gap: 5px;
+  transition: all 0.2s;
+  white-space: nowrap;
+}
+.filter-btn:hover { border-color: #2196F3; color: #2196F3; }
+.filter-btn.active { background: var(--tag-bg); border-color: #2196F3; color: #2196F3; }
+.filter-btn svg { width: 14px; height: 14px; }
+.search-box {
+  width: 100%;
+  padding: 7px 14px;
+  border: 1px solid var(--search-border);
+  border-radius: 20px;
+  font-size: 13px;
+  outline: none;
+  background: var(--search-bg);
+  color: var(--text);
+}
+.search-box:focus { border-color: #2196F3; }
+
+.dropdown {
+  position: absolute; top: 100%; left: 0;
+  background: var(--dropdown-bg); border: 1px solid var(--search-border); border-radius: 8px;
+  box-shadow: 0 4px 12px rgba(0,0,0,0.15);
+  max-height: 300px; overflow-y: auto; min-width: 250px;
+  z-index: 200; display: none;
+}
+.dropdown.show { display: block; }
+.dropdown-item { padding: 9px 14px; cursor: pointer; font-size: 13px; border-bottom: 1px solid var(--dropdown-border); color: var(--text); }
+.dropdown-item:hover { background: var(--dropdown-hover); }
+.dropdown-item.selected { background: var(--tag-bg); color: #2196F3; font-weight: 500; }
+.filter-wrapper { position: relative; }
+
+.active-filters { padding: 8px 20px; background: var(--bg-filter); display: none; flex-wrap: wrap; gap: 8px; border-bottom: 1px solid var(--border); }
+.active-filters.show { display: flex; }
+.filter-tag { display: inline-flex; align-items: center; gap: 6px; background: var(--tag-bg); color: var(--tag-text); padding: 4px 12px; border-radius: 16px; font-size: 12px; }
+.filter-tag button { border: none; background: none; cursor: pointer; color: var(--tag-text); font-size: 16px; line-height: 1; padding: 0; }
+
+.grid {
+  display: grid;
+  grid-template-columns: repeat(auto-fill, minmax(130px, 1fr));
+  gap: 12px;
+  padding: 16px 20px;
+  max-width: 1400px;
+  margin: 0 auto;
+}
+.card {
+  background: var(--bg-card); border-radius: 8px; overflow: hidden;
+  cursor: pointer; transition: transform 0.2s, box-shadow 0.2s;
+  box-shadow: 0 1px 3px var(--card-shadow);
+}
+.card:hover { transform: translateY(-2px); box-shadow: 0 4px 12px var(--card-hover-shadow); }
+.card-img {
+  width: 100%; aspect-ratio: 3/4;
+  object-fit: cover; object-position: top center; background: var(--img-bg);
+}
+.card-name { padding: 8px 10px; font-size: 13px; font-weight: 700; text-transform: uppercase; line-height: 1.3; color: var(--text-heading); }
+.card-no-photo {
+  width: 100%; aspect-ratio: 3/4;
+  background: var(--no-photo-bg); display: flex; align-items: center; justify-content: center;
+  font-size: 32px; font-weight: 800; color: var(--no-photo-text);
+}
+
+/* Modal */
+.modal-overlay {
+  display: none; position: fixed; top: 0; left: 0; right: 0; bottom: 0;
+  background: var(--overlay); z-index: 500;
+  justify-content: center; align-items: flex-start;
+  padding: 30px 20px; overflow-y: auto;
+}
+.modal-overlay.show { display: flex; }
+.modal {
+  background: var(--bg-modal); border-radius: 14px; max-width: 960px;
+  width: 100%; overflow: hidden; animation: slideUp 0.3s ease;
+}
+@keyframes slideUp { from { transform: translateY(20px); opacity: 0; } to { transform: translateY(0); opacity: 1; } }
+.modal-header {
+  display: flex; align-items: center; justify-content: space-between;
+  padding: 22px 30px; border-bottom: 2px solid var(--border-light);
+}
+.modal-header h2 { font-size: 28px; font-weight: 800; color: var(--text-heading); }
+.modal-close {
+  width: 44px; height: 44px; border: none; background: var(--bg-close);
+  cursor: pointer; font-size: 28px; color: var(--text-muted);
+  display: flex; align-items: center; justify-content: center; border-radius: 50%;
+}
+.modal-close:hover { background: var(--border); }
+.modal-body { padding: 30px; }
+.modal-top { display: flex; gap: 28px; margin-bottom: 24px; }
+.modal-photo {
+  width: 200px; height: 260px; object-fit: cover; object-position: top center;
+  border-radius: 12px; border: 2px solid var(--border-light); flex-shrink: 0;
+}
+.modal-top-info { flex: 1; display: flex; flex-direction: column; justify-content: center; }
+.modal-tag {
+  display: inline-block; background: var(--tag-bg); color: var(--tag-text);
+  padding: 8px 18px; border-radius: 20px; font-size: 17px; font-weight: 600;
+  margin-bottom: 14px; max-width: 100%; word-break: break-word;
+}
+.detail-grid { display: grid; grid-template-columns: 1fr 1fr; gap: 12px; }
+.detail-box { background: var(--bg-detail); border: 1px solid var(--border-detail); border-radius: 10px; padding: 14px 18px; }
+.detail-box-label { font-size: 14px; font-weight: 600; color: var(--text-muted); text-transform: uppercase; letter-spacing: 0.5px; margin-bottom: 6px; }
+.detail-box-value { font-size: 20px; font-weight: 700; color: var(--text-value); word-break: break-word; }
+
+/* Council badges in modal */
+.council-badges { display: flex; flex-wrap: wrap; gap: 10px; margin-bottom: 20px; }
+.council-badge {
+  display: flex; align-items: center; gap: 8px;
+  background: var(--tag-bg); border: 1px solid var(--border-detail);
+  border-radius: 12px; padding: 8px 16px; cursor: pointer;
+  transition: transform 0.2s, box-shadow 0.2s;
+}
+.council-badge:hover { transform: translateY(-1px); box-shadow: 0 3px 8px var(--card-shadow); }
+.council-badge img { width: 36px; height: 36px; border-radius: 8px; object-fit: contain; display: none; }
+.council-badge img[data-loaded] { display: block; }
+.council-badge .council-icon {
+  width: 36px; height: 36px; border-radius: 8px; flex-shrink: 0;
+  display: flex; align-items: center; justify-content: center;
+  font-size: 14px; font-weight: 800; color: white;
+}
+.council-badge span { font-size: 15px; font-weight: 600; color: var(--tag-text); }
+
+.empty-state { text-align: center; padding: 60px 20px; color: var(--text-muted); font-size: 16px; grid-column: 1 / -1; }
+
+.view { display: none; }
+.view.active { display: block; }
+
+@media (max-width: 700px) {
+  .grid { grid-template-columns: repeat(3, 1fr); gap: 10px; padding: 12px; }
+  .header h1 { font-size: 17px; }
+  .filters { padding: 10px 12px; gap: 6px; }
+  .modal-overlay { padding: 8px 4px; }
+  .modal { max-width: 100%; border-radius: 10px; }
+  .modal-header { padding: 16px 18px; }
+  .modal-header h2 { font-size: 22px; }
+  .modal-body { padding: 18px; }
+  .modal-top { flex-direction: column; gap: 16px; }
+  .modal-photo { width: 140px; height: 180px; }
+  .detail-grid { grid-template-columns: 1fr; }
+  .detail-box-value { font-size: 18px; }
+  .card-name { font-size: 11px; padding: 6px 8px; }
+  .landing { padding: 20px 12px; }
+  .cat-card { padding: 18px; gap: 14px; }
+  .cat-icon { width: 52px; height: 52px; font-size: 22px; }
+  .cat-info h3 { font-size: 17px; }
+}
+</style>
+</head>
+<body>
+
+<!-- Landing Page -->
+<div class="view active" id="landingView">
+  <div class="header">
+    <h1>Church Directory</h1>
+    <button class="theme-toggle" onclick="toggleTheme()" title="Toggle dark mode" id="themeBtn1">&#9790;</button>
+  </div>
+  <div class="landing">
+    <h2>Select a Directory</h2>
+    <div class="cat-grid" id="catGrid"></div>
+  </div>
+</div>
+
+<!-- Category View (grid of people) -->
+<div class="view" id="catView">
+  <div class="header">
+    <div class="header-left">
+      <button class="header-back" onclick="showLanding()">
+        <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5"><path d="M19 12H5M12 19l-7-7 7-7"/></svg>
+        Back
+      </button>
+      <h1 id="catTitle"></h1>
+    </div>
+    <div class="header-right">
+      <span class="count" id="catCount"></span>
+      <button class="theme-toggle" onclick="toggleTheme()" title="Toggle dark mode" id="themeBtn2">&#9790;</button>
+    </div>
+  </div>
+  <div class="filters" id="filtersBar">
+    <div class="filter-row" id="filterRow"></div>
+    <input type="text" class="search-box" placeholder="Search..." id="searchBox" oninput="applyFilters()">
+  </div>
+  <div class="active-filters" id="activeFilters"></div>
+  <div class="grid" id="grid"></div>
+</div>
+
+<!-- Detail Modal -->
+<div class="modal-overlay" id="modalOverlay" onclick="closeModal(event)">
+  <div class="modal" id="modal"></div>
+</div>
+
+<script>
+// Category definitions
+const CATEGORIES = [
+  { id: 'ud_bishops', name: 'UD Bishops', file: 'bishops_data.json', color: '#2196F3', icon: 'UB', logo: 'logos/dhmm.png' },
+  { id: 'first_love', name: 'First Love Church', file: 'first_love.json', color: '#E91E63', icon: 'FL', logo: 'logos/first_love.webp' },
+  { id: 'ud_pastors', name: 'UD Pastors', file: 'ud_pastors.json', color: '#4CAF50', icon: 'UP', logo: 'logos/dhmm.png' },
+  { id: 'udlwm', name: 'UDLWM', file: 'udlwm.json', color: '#FF9800', icon: 'LW', logo: 'logos/udlwm.jpg', logoDark: true },
+  { id: 'flow', name: 'Flow Church', file: 'flow.json', color: '#9C27B0', icon: 'FC', logo: 'logos/flow.webp' },
+];
+
+// Field mapping per category - maps compact keys to display labels
+const FIELD_MAPS = {
+  ud_bishops: {
+    expand: b => ({
+      name: b.n, age: b.a, councils: b.co, memberConvener: b.mc,
+      councilType: b.ct, denomination: b.dn, photo: b.ph, denomLogo: b.dl,
+      functionRank: b.fr, maritalStatus: b.ms, profession: b.pr,
+      branch: b.br, country: b.cy, branchCountry: b.bc,
+      avgIncome2023: b.i3, avgIncome2024: b.i4,
+      avgAttendance2023: b.a3, avgAttendance2024: b.a4,
+      yearAppointed: b.ya, yearOrdained: b.yo, yearConsecrated: b.yc
+    }),
+    filters: ['denomination', 'country', 'councilType'],
+    filterLabels: { denomination: 'Denomination', country: 'Country', councilType: 'Council Type' },
+    details: [
+      ['Marital Status','maritalStatus'], ['Age','age'], ['Branch, Country','branchCountry'],
+      ['Profession','profession'], ['Function Rank','functionRank'], ['Country','country'],
+      ['2023 Avg Income','avgIncome2023'], ['2024 Avg Income','avgIncome2024'],
+      ['2023 Avg Attendance','avgAttendance2023'], ['2024 Avg Attendance','avgAttendance2024'],
+      ['Year Appointed','yearAppointed'], ['Year Ordained','yearOrdained'], ['Year Consecrated','yearConsecrated'],
+    ],
+    tag: b => b.memberConvener || b.denomination || '',
+  },
+  first_love: {
+    expand: b => ({ name: b.n, age: b.a, country: b.cy, branch: b.br, maritalStatus: b.ms, profession: b.pr, gender: b.gn, functionRank: b.fr, council: (b.co||[]).join(', '), _councilArr: b.co||[], bishopStatus: b.bp, role: b.rl, photo: b.ph }),
+    filters: ['council', 'country', 'bishopStatus'],
+    filterLabels: { council: 'Council', country: 'Country', bishopStatus: 'Bishop Status' },
+    arrayFilters: ['council'],
+    details: [
+      ['Age','age'], ['Country','country'], ['Branch','branch'], ['Gender','gender'],
+      ['Marital Status','maritalStatus'], ['Profession','profession'],
+      ['Function Rank','functionRank'], ['Council','council'], ['Bishop Status','bishopStatus'], ['Role','role'],
+    ],
+    tag: b => b.bishopStatus || b.role || '',
+  },
+  ud_pastors: {
+    expand: b => ({ name: b.n, age: b.a, country: b.cy, branch: b.br, denomination: b.dn, functionRank: b.fr, maritalStatus: b.ms, profession: b.pr, gender: b.gn, council: b.co, yearAppointed: b.ya, yearOrdained: b.yo, yearConsecrated: b.yc, photo: b.ph }),
+    filters: ['denomination', 'country', 'functionRank'],
+    filterLabels: { denomination: 'Denomination', country: 'Country', functionRank: 'Function Rank' },
+    details: [
+      ['Age','age'], ['Country','country'], ['Branch','branch'], ['Denomination','denomination'],
+      ['Function Rank','functionRank'], ['Marital Status','maritalStatus'],
+      ['Profession','profession'], ['Gender','gender'], ['Council','council'],
+      ['Year Appointed','yearAppointed'], ['Year Ordained','yearOrdained'], ['Year Consecrated','yearConsecrated'],
+    ],
+    tag: b => b.functionRank || b.denomination || '',
+  },
+  udlwm: {
+    expand: b => ({ name: b.n, age: b.a, country: b.cy, denomination: b.dn, profession: b.pr, role: b.rl, photo: b.ph }),
+    filters: ['country', 'denomination'],
+    filterLabels: { country: 'Country', denomination: 'Denomination' },
+    details: [
+      ['Age','age'], ['Country','country'], ['Denomination','denomination'],
+      ['Profession','profession'], ['Role','role'],
+    ],
+    tag: b => b.role || b.denomination || '',
+  },
+  flow: {
+    expand: b => ({ name: b.n, age: b.a, maritalStatus: b.ms, profession: b.pr, role: b.rl, classification: b.cl, yearAppointed: b.ya, yearConsecrated: b.yc, photo: b.ph }),
+    filters: ['classification'],
+    filterLabels: { classification: 'Classification' },
+    details: [
+      ['Age','age'], ['Marital Status','maritalStatus'], ['Profession','profession'],
+      ['Role','role'], ['Classification','classification'],
+      ['Year Appointed','yearAppointed'], ['Year Consecrated','yearConsecrated'],
+    ],
+    tag: b => b.classification || b.role || '',
+  },
+};
+
+let currentCat = null;
+let people = [];
+let activeFilters = {};
+let councilLogos = {}; // name -> logo URL
+
+// Load council logos for First Love
+fetch('first_love_councils.json').then(r => r.json()).then(data => {
+  data.forEach(c => { if (c.logo) councilLogos[c.name] = c.logo; });
+}).catch(() => {});
+
+// Render landing page
+function renderLanding() {
+  const grid = document.getElementById('catGrid');
+  grid.innerHTML = CATEGORIES.map(c => `
+    <div class="cat-card" onclick="openCategory('${c.id}')">
+      <div class="cat-icon" style="background:${c.color}">
+        ${c.logo
+          ? `<img src="${c.logo}" alt="${c.name}" class="${c.logoDark ? 'logo-dark' : ''}" onerror="this.replaceWith(document.createTextNode('${c.icon}'))">`
+          : c.icon}
+      </div>
+      <div class="cat-info">
+        <h3>${c.name}</h3>
+        <p class="cat-count" id="count_${c.id}">Loading...</p>
+      </div>
+    </div>
+  `).join('');
+
+  // Load counts
+  CATEGORIES.forEach(c => {
+    fetch(c.file).then(r => r.json()).then(data => {
+      const count = Array.isArray(data) ? data.length : 0;
+      const el = document.getElementById('count_' + c.id);
+      if (el) el.textContent = count + ' people';
+    }).catch(() => {});
+  });
+}
+
+function showLanding() {
+  document.getElementById('landingView').classList.add('active');
+  document.getElementById('catView').classList.remove('active');
+  currentCat = null;
+}
+
+function openCategory(catId) {
+  const cat = CATEGORIES.find(c => c.id === catId);
+  if (!cat) return;
+  currentCat = catId;
+
+  document.getElementById('landingView').classList.remove('active');
+  document.getElementById('catView').classList.add('active');
+  const titleEl = document.getElementById('catTitle');
+  if (cat.logo) {
+    titleEl.innerHTML = `<img src="${cat.logo}" alt="" style="height:28px;vertical-align:middle;margin-right:8px;border-radius:6px;">${cat.name}`;
+  } else {
+    titleEl.textContent = cat.name;
+  }
+
+  fetch(cat.file)
+    .then(r => r.json())
+    .then(data => {
+      const fm = FIELD_MAPS[catId];
+      people = data.map(fm.expand);
+      activeFilters = {};
+      buildFilters();
+      renderGrid(people);
+    });
+}
+
+function buildFilters() {
+  const fm = FIELD_MAPS[currentCat];
+  const row = document.getElementById('filterRow');
+  row.innerHTML = '';
+
+  const arrayFilters = fm.arrayFilters || [];
+  fm.filters.forEach(key => {
+    const label = fm.filterLabels[key] || key;
+    const isArray = arrayFilters.includes(key);
+    const arrKey = '_' + key + 'Arr';
+    const values = isArray
+      ? [...new Set(people.flatMap(p => p[arrKey] || []).filter(Boolean))].sort()
+      : [...new Set(people.map(p => p[key]).filter(Boolean))].sort();
+    if (!values.length) return;
+
+    activeFilters[key] = null;
+    const wrapperId = 'fw_' + key;
+    const ddId = 'dd_' + key;
+    const btnId = 'btn_' + key;
+
+    const wrapper = document.createElement('div');
+    wrapper.className = 'filter-wrapper';
+    wrapper.id = wrapperId;
+    wrapper.innerHTML = `
+      <button class="filter-btn" id="${btnId}" onclick="toggleDropdown('${ddId}')">
+        ${label} <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M6 9l6 6 6-6"/></svg>
+      </button>
+      <div class="dropdown" id="${ddId}">
+        <div class="dropdown-item" data-value="">All</div>
+        ${values.map(v => `<div class="dropdown-item" data-value="${v}">${v}</div>`).join('')}
+      </div>
+    `;
+    row.appendChild(wrapper);
+
+    wrapper.querySelectorAll('.dropdown-item').forEach(item => {
+      item.addEventListener('click', () => {
+        activeFilters[key] = item.dataset.value || null;
+        closeAllDropdowns();
+        applyFilters();
+        updateFilterButtons();
+      });
+    });
+  });
+
+  document.getElementById('searchBox').value = '';
+}
+
+function toggleDropdown(id) {
+  const dd = document.getElementById(id);
+  const wasOpen = dd.classList.contains('show');
+  closeAllDropdowns();
+  if (!wasOpen) dd.classList.add('show');
+}
+function closeAllDropdowns() {
+  document.querySelectorAll('.dropdown').forEach(d => d.classList.remove('show'));
+}
+document.addEventListener('click', (e) => {
+  if (!e.target.closest('.filter-wrapper')) closeAllDropdowns();
+});
+
+function updateFilterButtons() {
+  const fm = FIELD_MAPS[currentCat];
+  fm.filters.forEach(key => {
+    const btn = document.getElementById('btn_' + key);
+    if (btn) btn.classList.toggle('active', !!activeFilters[key]);
+  });
+
+  const af = document.getElementById('activeFilters');
+  const tags = Object.entries(activeFilters).filter(([,v]) => v);
+  if (tags.length) {
+    af.classList.add('show');
+    af.innerHTML = tags.map(([k,v]) =>
+      `<span class="filter-tag">${v} <button onclick="clearFilter('${k}')">&times;</button></span>`
+    ).join('');
+  } else {
+    af.classList.remove('show');
+    af.innerHTML = '';
+  }
+}
+
+function clearFilter(key) {
+  activeFilters[key] = null;
+  applyFilters();
+  updateFilterButtons();
+}
+
+function applyFilters() {
+  const search = document.getElementById('searchBox').value.toLowerCase();
+  const fm = FIELD_MAPS[currentCat];
+  const arrayFilters = fm.arrayFilters || [];
+  const filtered = people.filter(p => {
+    for (const [key, val] of Object.entries(activeFilters)) {
+      if (!val) continue;
+      if (arrayFilters.includes(key)) {
+        const arr = p['_' + key + 'Arr'] || [];
+        if (!arr.includes(val)) return false;
+      } else {
+        if (p[key] !== val) return false;
+      }
+    }
+    if (search && !p.name.toLowerCase().includes(search)) return false;
+    return true;
+  });
+  renderGrid(filtered);
+}
+
+function renderGrid(list) {
+  const grid = document.getElementById('grid');
+  document.getElementById('catCount').textContent = `${list.length} ${list.length !== 1 ? 'people' : 'person'}`;
+  if (!list.length) {
+    grid.innerHTML = '<div class="empty-state">No results match your filters.</div>';
+    return;
+  }
+  grid.innerHTML = list.map((p, i) => {
+    const initials = (p.name || '?').split(' ').map(w => w[0]).join('').substring(0, 2);
+    return `
+    <div class="card" onclick="openModal(${i})">
+      ${p.photo
+        ? `<img class="card-img" src="${p.photo}" alt="${p.name}" loading="lazy" referrerpolicy="no-referrer" onerror="this.outerHTML='<div class=\\'card-no-photo\\'>${initials}</div>'">`
+        : `<div class="card-no-photo">${initials}</div>`
+      }
+      <div class="card-name">${p.name}</div>
+    </div>`;
+  }).join('');
+}
+
+function getFilteredList() {
+  const search = document.getElementById('searchBox').value.toLowerCase();
+  const fm = FIELD_MAPS[currentCat];
+  const af = fm.arrayFilters || [];
+  return people.filter(p => {
+    for (const [key, val] of Object.entries(activeFilters)) {
+      if (!val) continue;
+      if (af.includes(key)) {
+        if (!(p['_' + key + 'Arr'] || []).includes(val)) return false;
+      } else {
+        if (p[key] !== val) return false;
+      }
+    }
+    if (search && !p.name.toLowerCase().includes(search)) return false;
+    return true;
+  });
+}
+
+function openModal(index) {
+  const filtered = getFilteredList();
+  const p = filtered[index];
+  if (!p) return;
+
+  const fm = FIELD_MAPS[currentCat];
+  const modal = document.getElementById('modal');
+  const initials = (p.name || '?').split(' ').map(w => w[0]).join('').substring(0, 2);
+  const tagText = fm.tag(p);
+
+  function box(label, value) {
+    const v = value != null && value !== '' ? value : 'N/A';
+    return `<div class="detail-box"><div class="detail-box-label">${label}</div><div class="detail-box-value">${v}</div></div>`;
+  }
+
+  // Council badges for First Love
+  let councilBadgesHtml = '';
+  if (currentCat === 'first_love' && p._councilArr && p._councilArr.length) {
+    const colors = ['#E91E63','#9C27B0','#673AB7','#3F51B5','#2196F3','#009688','#4CAF50','#FF9800','#FF5722','#795548'];
+    councilBadgesHtml = `
+      <div class="detail-box-label" style="margin-bottom:8px">COUNCILS (tap to view members)</div>
+      <div class="council-badges">
+        ${p._councilArr.map((c, ci) => {
+          const logo = councilLogos[c] || '';
+          const initials = c.split(' ').map(w=>w[0]).join('').substring(0,2);
+          const bg = colors[ci % colors.length];
+          return `<div class="council-badge" onclick="filterByCouncil('${c.replace(/'/g,"\\'")}')">
+            <div class="council-icon" style="background:${bg}">${initials}</div>
+            ${logo ? `<img src="${logo}" alt="${c}" referrerpolicy="no-referrer" onload="this.setAttribute('data-loaded','1');this.previousElementSibling.style.display='none'" onerror="this.remove()">` : ''}
+            <span>${c}</span>
+          </div>`;
+        }).join('')}
+      </div>`;
+  }
+
+  modal.innerHTML = `
+    <div class="modal-header">
+      <h2>${p.name}</h2>
+      <button class="modal-close" onclick="document.getElementById('modalOverlay').classList.remove('show')">&times;</button>
+    </div>
+    <div class="modal-body">
+      <div class="modal-top">
+        ${p.photo
+          ? `<img class="modal-photo" src="${p.photo}" alt="${p.name}" referrerpolicy="no-referrer" onerror="this.style.background='#ddd'">`
+          : `<div class="modal-photo" style="background:#e0e0e0;display:flex;align-items:center;justify-content:center;font-size:48px;font-weight:800;color:#999">${initials}</div>`
+        }
+        <div class="modal-top-info">
+          ${tagText ? `<div class="modal-tag">${tagText}</div>` : ''}
+        </div>
+      </div>
+      ${councilBadgesHtml}
+      <div class="detail-grid">
+        ${fm.details.map(([label, key]) => box(label, p[key])).join('')}
+      </div>
+    </div>
+  `;
+  document.getElementById('modalOverlay').classList.add('show');
+}
+
+function filterByCouncil(councilName) {
+  document.getElementById('modalOverlay').classList.remove('show');
+  activeFilters['council'] = councilName;
+  applyFilters();
+  updateFilterButtons();
+}
+
+function closeModal(e) {
+  if (e.target === e.currentTarget) document.getElementById('modalOverlay').classList.remove('show');
+}
+document.addEventListener('keydown', (e) => {
+  if (e.key === 'Escape') document.getElementById('modalOverlay').classList.remove('show');
+});
+
+// Theme
+function toggleTheme() {
+  const isDark = document.documentElement.getAttribute('data-theme') === 'dark';
+  const newTheme = isDark ? 'light' : 'dark';
+  document.documentElement.setAttribute('data-theme', newTheme === 'dark' ? 'dark' : '');
+  localStorage.setItem('theme', newTheme);
+  updateThemeIcons(newTheme);
+}
+function updateThemeIcons(theme) {
+  const icon = theme === 'dark' ? '\u2600' : '\u263E';
+  document.querySelectorAll('.theme-toggle').forEach(b => b.innerHTML = icon);
+}
+(function initTheme() {
+  const saved = localStorage.getItem('theme') || 'light';
+  if (saved === 'dark') document.documentElement.setAttribute('data-theme', 'dark');
+  updateThemeIcons(saved);
+})();
+
+// Init
+renderLanding();
+</script>
+</body>
+</html>
