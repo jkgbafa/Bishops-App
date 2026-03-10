@@ -491,6 +491,7 @@ function openCategory(catId) {
       }
       activeFilters = {};
       buildFilters();
+      updateFilterButtons();
       renderGrid(people);
     });
 }
