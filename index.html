@@ -172,6 +172,8 @@ body { font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, sans-
 .active-filters.show { display: flex; }
 .filter-tag { display: inline-flex; align-items: center; gap: 6px; background: var(--tag-bg); color: var(--tag-text); padding: 4px 12px; border-radius: 16px; font-size: 12px; }
 .filter-tag button { border: none; background: none; cursor: pointer; color: var(--tag-text); font-size: 16px; line-height: 1; padding: 0; }
+.filter-tag img { width: 22px; height: 22px; border-radius: 4px; object-fit: contain; }
+.filter-tag.has-logo { padding: 4px 12px 4px 4px; }
 
 .grid {
   display: grid;
@@ -419,6 +421,7 @@ let currentCat = null;
 let people = [];
 let activeFilters = {};
 let councilLogos = {}; // name -> logo URL
+let denomLogos = {};   // denomination name -> logo URL
 
 // Load council logos for First Love
 fetch('first_love_councils.json').then(r => r.json()).then(data => {
@@ -477,6 +480,15 @@ function openCategory(catId) {
     .then(data => {
       const fm = FIELD_MAPS[catId];
       people = data.map(fm.expand);
+      // Build denomination logo lookup for UD Bishops
+      if (catId === 'ud_bishops') {
+        denomLogos = {};
+        people.forEach(p => {
+          if (p.denomination && p.denomLogo && p.denomLogo !== '#N/A') {
+            denomLogos[p.denomination] = p.denomLogo;
+          }
+        });
+      }
       activeFilters = {};
       buildFilters();
       renderGrid(people);
@@ -554,9 +566,15 @@ function updateFilterButtons() {
   const tags = Object.entries(activeFilters).filter(([,v]) => v);
   if (tags.length) {
     af.classList.add('show');
-    af.innerHTML = tags.map(([k,v]) =>
-      `<span class="filter-tag">${v} <button onclick="clearFilter('${k}')">&times;</button></span>`
-    ).join('');
+    af.innerHTML = tags.map(([k,v]) => {
+      let logo = '';
+      if (k === 'denomination' && currentCat === 'ud_bishops' && denomLogos[v]) {
+        logo = `<img src="${denomLogos[v]}" alt="" referrerpolicy="no-referrer" onerror="this.remove()">`;
+      } else if (k === 'council' && currentCat === 'first_love' && councilLogos[v]) {
+        logo = `<img src="${councilLogos[v]}" alt="" onerror="this.remove()">`;
+      }
+      return `<span class="filter-tag${logo ? ' has-logo' : ''}">${logo}${v} <button onclick="clearFilter('${k}')">&times;</button></span>`;
+    }).join('');
   } else {
     af.classList.remove('show');
     af.innerHTML = '';
