@@ -29,6 +29,7 @@
   --overlay: rgba(0,0,0,0.5);
   --accent: #2196F3;
   --img-bg: #e8e8e8;
+  --shimmer-hi: #f5f5f5;
 }
 [data-theme="dark"] {
   --bg: #1a1a2e; --bg-card: #16213e; --bg-filter: #16213e; --bg-modal: #1a1a2e;
@@ -43,6 +44,7 @@
   --overlay: rgba(0,0,0,0.7);
   --accent: #1976D2;
   --img-bg: #0f3460;
+  --shimmer-hi: #1a4a7a;
 }
 
 body { font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, sans-serif; background: var(--bg); color: var(--text); transition: background 0.3s, color 0.3s; }
@@ -191,8 +193,14 @@ body { font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, sans-
 .card:hover { transform: translateY(-2px); box-shadow: 0 4px 12px var(--card-hover-shadow); }
 .card-img {
   width: 100%; aspect-ratio: 3/4;
-  object-fit: cover; object-position: top center; background: var(--img-bg);
+  object-fit: cover; object-position: top center;
+  background: linear-gradient(90deg, var(--img-bg) 25%, var(--shimmer-hi) 50%, var(--img-bg) 75%);
+  background-size: 200% 100%;
+  animation: shimmer 1.5s infinite;
 }
+.card-img.loaded { animation: none; background: var(--img-bg); }
+@keyframes shimmer { 0% { background-position: 200% 0; } 100% { background-position: -200% 0; } }
+#gridSentinel { height: 1px; }
 .card-name { padding: 8px 10px; font-size: 13px; font-weight: 700; text-transform: uppercase; line-height: 1.3; color: var(--text-heading); }
 .card-no-photo {
   width: 100%; aspect-ratio: 3/4;
@@ -354,6 +362,7 @@ body { font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, sans-
     <span id="ptrText">Pull to refresh</span>
   </div>
   <div class="grid" id="grid"></div>
+  <div id="gridSentinel"></div>
 </div>
 
 <!-- Detail Modal -->
@@ -632,25 +641,65 @@ function applyFilters() {
   renderGrid(filtered);
 }
 
+let renderedList = [];
+let renderIndex = 0;
+const BATCH_SIZE = 60;
+
+function renderCard(p, i) {
+  const initials = (p.name || '?').split(' ').map(w => w[0]).join('').substring(0, 2);
+  return `<div class="card" onclick="openModal(${i})">
+    ${p.photo
+      ? `<img class="card-img" src="${p.photo}" alt="${p.name}" loading="lazy" referrerpolicy="no-referrer" onload="this.classList.add('loaded')" onerror="this.outerHTML='<div class=\\'card-no-photo\\'>${initials}</div>'">`
+      : `<div class="card-no-photo">${initials}</div>`
+    }
+    <div class="card-name">${p.name}</div>
+  </div>`;
+}
+
+function renderNextBatch() {
+  if (renderIndex >= renderedList.length) return;
+  const grid = document.getElementById('grid');
+  const end = Math.min(renderIndex + BATCH_SIZE, renderedList.length);
+  const html = [];
+  for (let i = renderIndex; i < end; i++) {
+    html.push(renderCard(renderedList[i], i));
+  }
+  grid.insertAdjacentHTML('beforeend', html.join(''));
+  renderIndex = end;
+  // Chain-load if sentinel still visible
+  if (renderIndex < renderedList.length) requestAnimationFrame(checkScrollLoad);
+}
+
+function checkScrollLoad() {
+  if (renderIndex >= renderedList.length) return;
+  const sentinel = document.getElementById('gridSentinel');
+  if (!sentinel) return;
+  const rect = sentinel.getBoundingClientRect();
+  if (rect.top < window.innerHeight + 800) {
+    renderNextBatch();
+    if (renderIndex < renderedList.length) requestAnimationFrame(checkScrollLoad);
+  }
+}
+
 function renderGrid(list) {
   const grid = document.getElementById('grid');
   document.getElementById('catCount').textContent = `${list.length} ${list.length !== 1 ? 'people' : 'person'}`;
   if (!list.length) {
     grid.innerHTML = '<div class="empty-state">No results match your filters.</div>';
+    renderedList = []; renderIndex = 0;
     return;
   }
-  grid.innerHTML = list.map((p, i) => {
-    const initials = (p.name || '?').split(' ').map(w => w[0]).join('').substring(0, 2);
-    return `
-    <div class="card" onclick="openModal(${i})">
-      ${p.photo
-        ? `<img class="card-img" src="${p.photo}" alt="${p.name}" loading="lazy" referrerpolicy="no-referrer" onerror="this.outerHTML='<div class=\\'card-no-photo\\'>${initials}</div>'">`
-        : `<div class="card-no-photo">${initials}</div>`
-      }
-      <div class="card-name">${p.name}</div>
-    </div>`;
-  }).join('');
+  renderedList = list;
+  renderIndex = 0;
+  grid.innerHTML = '';
+  renderNextBatch();
+  window.scrollTo({ top: 0 });
+  requestAnimationFrame(checkScrollLoad);
 }
+
+window.addEventListener('scroll', () => {
+  if (renderIndex < renderedList.length) checkScrollLoad();
+}, { passive: true });
 
 function getFilteredList() {
   const search = document.getElementById('searchBox').value.toLowerCase();
@@ -671,8 +720,7 @@ function getFilteredList() {
 }
 
 function openModal(index) {
-  const filtered = getFilteredList();
-  const p = filtered[index];
+  const p = renderedList[index];
   if (!p) return;
 
   const fm = FIELD_MAPS[currentCat];
